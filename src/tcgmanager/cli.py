@@ -29,7 +29,7 @@ CONTEXT_SETTINGS = dict(auto_envvar_prefix="TCG", help_option_names=["-h", "--he
 @click.option(
     "--es-host",
     "esHost",
-    prompt="ES Host",
+    prompt=False,
     default=lambda: os.environ.get("TCG_ES_HOST", ""),
     help="Elasticsearch host to interact with"
 )
