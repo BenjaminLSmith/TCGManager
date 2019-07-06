@@ -11,10 +11,8 @@ class ESConnectionBase:
 
 
     def insertDocument(self, document):
-        LOG.info("hi")
         # Insert time into document
         document['timestamp'] = datetime.utcnow()
-        print(datetime.now())
 
         # Insert document into ES
         res = self.conn.index(index="mtg-cards", body=document)
