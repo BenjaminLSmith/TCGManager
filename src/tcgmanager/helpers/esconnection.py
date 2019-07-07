@@ -42,7 +42,10 @@ class ESConnectionBase:
     def getCardByDocID(self, docID):
         try:
             res = self.conn.get(index=self.invIndex, doc_type='cards', id=docID)
+            LOG.debug(res)
+            if res["found"]:
+                return res["_source"]
+            else:
+                return None
         except NotFoundError:
             return None
-        finally:
-            return res["_source"]
