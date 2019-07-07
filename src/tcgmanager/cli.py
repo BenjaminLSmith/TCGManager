@@ -116,7 +116,7 @@ def insertCardIntoES(
         doc = existingDoc
         doc["numCards"] += numberOfCard
     else:
-        doc["productId"] = cardProductId
+        doc["productId"] = int(cardProductId)
         doc["subTypeName"] = cardSubType
         doc["isListed"] = isCardListed
         doc["numCards"] = numberOfCard
@@ -134,15 +134,36 @@ def insertCardIntoES(
         for detail in detailedResults["results"][0]["extendedData"]:
             doc[detail["name"]] = detail["value"]
 
-
     # Insert document into ES
     result = es.insertInvDocument(doc)
     LOG.debug(result)
 
+@cli.command("getLatestPrices")
 @PASS_CONTEXT
-def getLatestPrices():
+def getLatestPrices(ctx):
     # Setup
     tcgapi = TCGPlayerBase()
     es = ESConnectionBase(ctx.obj["ELASTIC_HOST"])
 
     # Get documents in Inventory
+    hits = es.getInvList()
+
+    hitDictionary = {}
+    productIDs = []
+    for hit in hits["hits"]:
+        docIDSplit = hit["_id"].split("-")
+        hitDictionary[hit["_id"]] = 1
+        productIDs.append(docIDSplit[0])
+
+    # Get prices for all productIDs in inventory
+    prices = tcgapi.getMarketPricesByProductId(productIDs)
+    if not prices["success"]:
+        LOG.error("Failed to get pricing information during update: {}".format(prices["errors"]))
+        raise
+
+    for priceObj in prices["results"]:
+        priceId = "{}-{}".format(priceObj["productId"], priceObj["subTypeName"])
+        if priceId in hitDictionary:
+            # Insert priceObj into priceIndex
+            result = es.insertPriceDocument(priceObj)
+            LOG.debug(result)

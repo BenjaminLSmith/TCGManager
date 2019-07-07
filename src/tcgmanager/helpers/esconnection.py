@@ -25,12 +25,19 @@ class ESConnectionBase:
         )
         return res
 
-    def getInvList(self):
+    def insertPriceDocument(self, document):
+        document["timestamp"] = datetime.utcnow()
 
-        res = self.conn.search(
+        # Insert document into ES
+        res = self.conn.index(
+            index=self.priceIndex, body=document, doc_type="prices"
         )
-
         return res
+
+    def getInvList(self):
+        # Request to search entire inventory
+        res = self.conn.search(index=self.invIndex, body={"query": {"match_all": {}}}, _source=False)
+        return res["hits"]
 
     def getCardByDocID(self, docID):
         try:
