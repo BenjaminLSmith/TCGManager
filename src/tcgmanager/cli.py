@@ -165,4 +165,5 @@ def getLatestPrices(ctx):
         priceId = "{}-{}".format(priceObj["productId"], priceObj["subTypeName"])
         if priceId in hitDictionary:
             # Insert priceObj into priceIndex
-            es.insertPriceDocument(priceObj)
+            result = es.insertPriceDocument(priceObj)
+            LOG.debug(result)
