@@ -152,7 +152,7 @@ def getLatestPrices(ctx):
     productIDs = []
     for hit in hits["hits"]:
         docIDSplit = hit["_id"].split("-")
-        hitDictionary[hit["_id"]] = 1
+        hitDictionary[hit["_id"]] = hit["_source"]["cardName"]
         productIDs.append(docIDSplit[0])
 
     # Get prices for all productIDs in inventory
@@ -164,6 +164,7 @@ def getLatestPrices(ctx):
     for priceObj in prices["results"]:
         priceId = "{}-{}".format(priceObj["productId"], priceObj["subTypeName"])
         if priceId in hitDictionary:
+            priceObj["cardName"] = hitDictionary[priceId]
             # Insert priceObj into priceIndex
             result = es.insertPriceDocument(priceObj)
             LOG.debug(result)

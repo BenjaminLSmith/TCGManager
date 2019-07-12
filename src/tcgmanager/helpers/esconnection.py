@@ -36,7 +36,7 @@ class ESConnectionBase:
 
     def getInvList(self):
         # Request to search entire inventory
-        res = self.conn.search(index=self.invIndex, body={"query": {"match_all": {}}}, _source=False)
+        res = self.conn.search(index=self.invIndex, body={"query": {"match_all": {}}}, _source=True)
         return res["hits"]
 
     def getCardByDocID(self, docID):
