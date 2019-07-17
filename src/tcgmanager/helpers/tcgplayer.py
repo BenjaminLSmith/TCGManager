@@ -23,7 +23,7 @@ class TCGPlayerBase:
             authcodeJSON = json.loads(authcodeRaw)
 
             # Check if auth code is still valid
-            now = datetime.now()
+            now = datetime.utcnow()
             expires = datetime.strptime(
                 authcodeJSON[".expires"], "%a, %d %b %Y %H:%M:%S GMT"
             )
