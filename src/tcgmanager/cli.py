@@ -5,6 +5,7 @@ import os
 
 from tcgmanager.helpers.tcgplayer import TCGPlayerBase
 from tcgmanager.helpers.esconnection import ESConnectionBase
+from tcgmanager.services.docupdates import UpdateDocsBase
 
 # Basic Logging
 LOG = logging.getLogger()
@@ -102,69 +103,13 @@ def searchCardByName(ctx, mtgCardName: str):
 def insertCardIntoES(
     ctx, cardProductId: str, cardSubType: str, isCardListed: bool, numberOfCard: int
 ):
-    tcgapi = TCGPlayerBase()
-    es = ESConnectionBase(ctx.obj["ELASTIC_HOST"])
+    docBase = UpdateDocsBase(ctx.obj["ELASTIC_HOST"])
+    docBase.insertCard(cardProductId, cardSubType, isCardListed, numberOfCard)
 
-    # Check if card exists already
-    existingDoc = es.getCardByDocID("{}-{}".format(
-        cardProductId, cardSubType
-    ))
-
-    # Create document
-    doc = {}
-    if existingDoc:
-        doc = existingDoc
-        doc["numCards"] += numberOfCard
-    else:
-        doc["productId"] = int(cardProductId)
-        doc["subTypeName"] = cardSubType
-        doc["isListed"] = isCardListed
-        doc["numCards"] = numberOfCard
-
-        # Get details for card
-        ids = [cardProductId]
-        detailedResults = tcgapi.mtgCardDetails(ids)
-        if not detailedResults["success"]:
-            LOG.info("Failed to get card details. Exiting.")
-            return
-
-        doc["cardName"] = detailedResults["results"][0]["name"]
-        doc["urlInfo"] = detailedResults["results"][0]["url"]
-
-        for detail in detailedResults["results"][0]["extendedData"]:
-            doc[detail["name"]] = detail["value"]
-
-    # Insert document into ES
-    result = es.insertInvDocument(doc)
-    LOG.debug(result)
 
 @cli.command("getLatestPrices")
 @PASS_CONTEXT
 def getLatestPrices(ctx):
     # Setup
-    tcgapi = TCGPlayerBase()
-    es = ESConnectionBase(ctx.obj["ELASTIC_HOST"])
-
-    # Get documents in Inventory
-    hits = es.getInvList()
-
-    hitDictionary = {}
-    productIDs = []
-    for hit in hits["hits"]:
-        docIDSplit = hit["_id"].split("-")
-        hitDictionary[hit["_id"]] = hit["_source"]["cardName"]
-        productIDs.append(docIDSplit[0])
-
-    # Get prices for all productIDs in inventory
-    prices = tcgapi.getMarketPricesByProductId(productIDs)
-    if not prices["success"]:
-        LOG.error("Failed to get pricing information during update: {}".format(prices["errors"]))
-        raise
-
-    for priceObj in prices["results"]:
-        priceId = "{}-{}".format(priceObj["productId"], priceObj["subTypeName"])
-        if priceId in hitDictionary:
-            priceObj["cardName"] = hitDictionary[priceId]
-            # Insert priceObj into priceIndex
-            result = es.insertPriceDocument(priceObj)
-            LOG.debug(result)
+    docBase = UpdateDocsBase(ctx.obj["ELASTIC_HOST"])
+    docBase.getLatestPrices()
