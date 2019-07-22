@@ -15,9 +15,7 @@ class ESConnectionBase:
 
     def insertInvDocument(self, document):
         # create Document ID
-        docID = "{}-{}".format(
-            document["productId"], document["subTypeName"]
-        )
+        docID = "{}-{}".format(document["productId"], document["subTypeName"])
 
         # Insert document into ES
         res = self.conn.index(
@@ -29,19 +27,25 @@ class ESConnectionBase:
         document["timestamp"] = datetime.utcnow()
 
         # Insert document into ES
-        res = self.conn.index(
-            index=self.priceIndex, body=document, doc_type="prices"
-        )
+        res = self.conn.index(index=self.priceIndex, body=document, doc_type="prices")
         return res
 
-    def getInvList(self):
-        # Request to search entire inventory
-        res = self.conn.search(index=self.invIndex, body={"query": {"match_all": {}}}, _source=True)
-        return res["hits"]
+    def getInvList(self, scrollId=None):
+        if scrollId:
+            res = self.conn.scroll(scroll_id=scrollId, scroll="1m")
+        else:
+            # Request to search entire inventory
+            res = self.conn.search(
+                index=self.invIndex,
+                scroll="1m",
+                body={"query": {"match_all": {}}},
+                _source=True,
+            )
+        return res
 
     def getCardByDocID(self, docID):
         try:
-            res = self.conn.get(index=self.invIndex, doc_type='cards', id=docID)
+            res = self.conn.get(index=self.invIndex, doc_type="cards", id=docID)
             LOG.debug(res)
             if res["found"]:
                 return res["_source"]
